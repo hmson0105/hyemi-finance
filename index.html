@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포트폴리오 몬테카를로 시뮬레이션</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root {
+    --primary: #1E40AF;
+    --secondary: #3B82F6;
+    --accent: #60A5FA;
+    --bg: #F8FAFC;
+    --bg-elev: #FFFFFF;
+    --bg-soft: #EFF4FB;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --border: #E2E8F0;
+    --good: #16A34A;
+    --bad: #DC2626;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,.05);
+    --shadow-md: 0 4px 14px rgba(15,23,42,.07);
+  }
+  * , *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.55;
+    word-break: keep-all;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  header.top {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
+    padding: 22px 0;
+  }
+  header.top h1 { margin: 0 0 4px; font-size: 1.3rem; }
+  header.top p { margin: 0; color: var(--text-secondary); font-size: .88rem; }
+  .private-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+    color: var(--bad); background: #FEF2F2; border: 1px solid #FCA5A5;
+    padding: 3px 9px; border-radius: 999px; margin-bottom: 10px;
+  }
+  main { padding: 32px 0 80px; }
+  .panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .panel h2 { font-size: 1.05rem; margin: 0 0 4px; }
+  .panel .hint { color: var(--text-secondary); font-size: .85rem; margin: 0 0 18px; }
+  label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  input[type=number], input[type=text], select {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: .9rem; background: var(--bg);
+    color: var(--text-primary); font-family: inherit;
+  }
+  input:focus, select:focus { outline: 2px solid var(--secondary); outline-offset: 1px; }
+  .field { margin-bottom: 14px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid4 { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  @media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: 1fr; } .grid4 { grid-template-columns: 1fr 1fr; } }
+
+  table#assetTable { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  table#assetTable th { text-align: left; font-size: .75rem; color: var(--text-secondary); font-weight: 600; padding: 0 8px 6px; }
+  table#assetTable td { padding: 4px 8px 4px 0; }
+  .row-remove {
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--bad);
+    width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 1rem;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: var(--radius-md);
+    font-weight: 600; font-size: .9rem; border: 1px solid transparent; cursor: pointer;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--secondary); }
+  .btn-secondary { background: var(--bg-elev); color: var(--primary); border-color: var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-run {
+    width: 100%; padding: 15px; font-size: 1rem; border-radius: var(--radius-md);
+    background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 700;
+  }
+  .btn-run:hover { background: var(--secondary); }
+  .btn-run:disabled { opacity: .6; cursor: default; }
+
+  .checkline { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .checkline input { width: auto; }
+  .checkline label { margin: 0; font-weight: 500; color: var(--text-primary); }
+
+  #results { display: none; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .stat-card { background: var(--bg-soft); border-radius: var(--radius-md); padding: 16px; }
+  .stat-card .label { font-size: .75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px; }
+  .stat-card .value { font-size: 1.35rem; font-weight: 700; }
+  .stat-card.ok .value { color: var(--good); }
+  .stat-card.warn .value { color: var(--bad); }
+  canvas { width: 100%; height: 340px; display: block; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .8rem; color: var(--text-secondary); margin-top: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .assumptions { font-size: .78rem; color: var(--text-secondary); background: var(--bg-soft); border-radius: var(--radius-md); padding: 14px 16px; margin-top: 16px; }
+  .assumptions ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="container">
+    <span class="private-badge">🔒 비공개 · 본인 전용</span>
+    <h1>포트폴리오 몬테카를로 시뮬레이션</h1>
+    <p>모든 계산은 이 브라우저 안에서만 실행됩니다. 입력한 금액·수익률 데이터는 어디로도 전송되거나 저장되지 않습니다.</p>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="panel">
+    <h2>1. 자산 구성</h2>
+    <p class="hint">자산군별 현재 평가금액과 기대수익률·변동성을 입력하세요. 필요한 만큼 행을 추가할 수 있습니다.</p>
+    <table id="assetTable">
+      <thead>
+        <tr>
+          <th>자산군</th>
+          <th>현재 금액 (원)</th>
+          <th>연 기대수익률 (%)</th>
+          <th>연 변동성 (%)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="assetRows"></tbody>
+    </table>
+    <button type="button" class="btn btn-secondary" id="addAssetBtn">+ 자산 추가</button>
+  </section>
+
+  <section class="panel">
+    <h2>2. 납입 계획</h2>
+    <p class="hint">시뮬레이션 기간 동안 매월 추가로 납입할 금액입니다. 은퇴 등으로 납입이 없다면 0으로 두세요.</p>
+    <div class="grid2">
+      <div class="field">
+        <label for="monthlyContribution">월 납입액 (원)</label>
+        <input type="number" id="monthlyContribution" value="0" min="0" step="10000">
+      </div>
+      <div class="field">
+        <label for="contributionGrowth">납입액 연 증가율 (%, 예: 급여상승률)</label>
+        <input type="number" id="contributionGrowth" value="0" step="0.1">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>3. 인출 계획</h2>
+    <p class="hint">은퇴 후 자산을 인출할 계획이 있다면 입력하세요. 인출이 없다면 인출 시작 시점을 시뮬레이션 기간과 같게 두면 됩니다.</p>
+    <div class="grid3">
+      <div class="field">
+        <label for="withdrawStartYear">인출 시작 시점 (지금부터 N년 후)</label>
+        <input type="number" id="withdrawStartYear" value="30" min="0" step="1">
+      </div>
+      <div class="field">
+        <label for="withdrawMode">인출 방식</label>
+        <select id="withdrawMode">
+          <option value="fixed">고정 금액 (물가연동)</option>
+          <option value="percent">포트폴리오 비율(%)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="withdrawAmount" id="withdrawAmountLabel">연 인출액 (오늘 기준 원)</label>
+        <input type="number" id="withdrawAmount" value="0" min="0" step="100000">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>4. 기간 · 목표 · 물가</h2>
+    <div class="grid3">
+      <div class="field">
+        <label for="horizonYears">시뮬레이션 기간 (년)</label>
+        <input type="number" id="horizonYears" value="40" min="1" step="1">
+      </div>
+      <div class="field">
+        <label for="goalAmount">목표 금액 (오늘 기준 원, 선택)</label>
+        <input type="number" id="goalAmount" value="0" min="0" step="1000000">
+      </div>
+      <div class="field">
+        <label for="inflation">연 물가상승률 (%)</label>
+        <input type="number" id="inflation" value="2.5" step="0.1">
+      </div>
+    </div>
+    <div class="checkline">
+      <input type="checkbox" id="rebalance" checked>
+      <label for="rebalance">매년 초기 자산배분 비율로 리밸런싱</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>5. 시뮬레이션 설정</h2>
+    <div class="grid2">
+      <div class="field">
+        <label for="simCount">시뮬레이션 횟수</label>
+        <input type="number" id="simCount" value="2000" min="100" max="10000" step="100">
+      </div>
+    </div>
+    <button type="button" class="btn-run" id="runBtn">시뮬레이션 실행</button>
+  </section>
+
+  <section class="panel" id="results">
+    <h2>결과</h2>
+    <div class="stat-grid" id="statGrid"></div>
+    <canvas id="chart" width="900" height="340"></canvas>
+    <div class="legend">
+      <span><i style="background:#93C5FD"></i>10–90번째 백분위 구간</span>
+      <span><i style="background:#3B82F6"></i>25–75번째 백분위 구간</span>
+      <span><i style="background:#1E40AF"></i>중앙값 (50번째 백분위)</span>
+    </div>
+    <div class="assumptions">
+      단순화한 가정입니다:
+      <ul>
+        <li>각 자산군의 월별 수익률은 정규분포를 따르는 독립 확률변수로 가정합니다 (자산군 간 상관관계는 반영하지 않습니다).</li>
+        <li>월 수익률 = 연 기대수익률 ÷ 12, 월 변동성 = 연 변동성 ÷ √12 로 근사합니다.</li>
+        <li>납입/인출은 매월 균등하게 발생한다고 가정합니다.</li>
+        <li>포트폴리오가 0 이하가 되면 그 시점부터 소진(고갈)된 것으로 처리합니다.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  var assetRowsEl = document.getElementById('assetRows');
+  var rowId = 0;
+
+  function addAssetRow(name, amount, ret, vol) {
+    rowId++;
+    var tr = document.createElement('tr');
+    tr.dataset.rowId = rowId;
+    tr.innerHTML =
+      '<td><input type="text" class="a-name" value="' + (name || '') + '" placeholder="예: 국내주식"></td>' +
+      '<td><input type="number" class="a-amount" value="' + (amount != null ? amount : 0) + '" min="0" step="100000"></td>' +
+      '<td><input type="number" class="a-return" value="' + (ret != null ? ret : 6) + '" step="0.1"></td>' +
+      '<td><input type="number" class="a-vol" value="' + (vol != null ? vol : 15) + '" step="0.1"></td>' +
+      '<td><button type="button" class="row-remove" title="삭제">×</button></td>';
+    tr.querySelector('.row-remove').addEventListener('click', function () { tr.remove(); });
+    assetRowsEl.appendChild(tr);
+  }
+
+  document.getElementById('addAssetBtn').addEventListener('click', function () { addAssetRow(); });
+
+  addAssetRow('국내주식', 0, 7, 18);
+  addAssetRow('해외주식', 0, 8, 17);
+  addAssetRow('채권', 0, 3.5, 5);
+  addAssetRow('현금성자산', 0, 3, 1);
+
+  var withdrawMode = document.getElementById('withdrawMode');
+  var withdrawAmountLabel = document.getElementById('withdrawAmountLabel');
+  withdrawMode.addEventListener('change', function () {
+    withdrawAmountLabel.textContent = withdrawMode.value === 'percent'
+      ? '연 인출 비율 (자산 대비 %)'
+      : '연 인출액 (오늘 기준 원)';
+  });
+
+  function readAssets() {
+    var rows = assetRowsEl.querySelectorAll('tr');
+    var assets = [];
+    rows.forEach(function (tr) {
+      var amount = parseFloat(tr.querySelector('.a-amount').value) || 0;
+      var ret = parseFloat(tr.querySelector('.a-return').value) || 0;
+      var vol = parseFloat(tr.querySelector('.a-vol').value) || 0;
+      var name = tr.querySelector('.a-name').value || '자산';
+      assets.push({ name: name, amount: amount, annualReturn: ret / 100, annualVol: vol / 100 });
+    });
+    return assets;
+  }
+
+  function gaussianRandom() {
+    var u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function percentile(sortedArr, p) {
+    var idx = (sortedArr.length - 1) * p;
+    var lo = Math.floor(idx), hi = Math.ceil(idx);
+    if (lo === hi) return sortedArr[lo];
+    return sortedArr[lo] + (sortedArr[hi] - sortedArr[lo]) * (idx - lo);
+  }
+
+  function runSimulation() {
+    var assets = readAssets().filter(function (a) { return a.amount > 0 || a.annualReturn !== 0; });
+    if (assets.length === 0) {
+      alert('자산을 최소 한 개 이상 입력해주세요.');
+      return;
+    }
+    var totalInitial = assets.reduce(function (s, a) { return s + a.amount; }, 0);
+    var targetWeights = assets.map(function (a) { return totalInitial > 0 ? a.amount / totalInitial : 1 / assets.length; });
+
+    var monthlyContribution = parseFloat(document.getElementById('monthlyContribution').value) || 0;
+    var contributionGrowth = (parseFloat(document.getElementById('contributionGrowth').value) || 0) / 100;
+    var withdrawStartYear = parseFloat(document.getElementById('withdrawStartYear').value) || 0;
+    var withdrawModeVal = document.getElementById('withdrawMode').value;
+    var withdrawAmountInput = parseFloat(document.getElementById('withdrawAmount').value) || 0;
+    var horizonYears = parseInt(document.getElementById('horizonYears').value) || 1;
+    var goalAmount = parseFloat(document.getElementById('goalAmount').value) || 0;
+    var inflation = (parseFloat(document.getElementById('inflation').value) || 0) / 100;
+    var rebalance = document.getElementById('rebalance').checked;
+    var simCount = Math.max(100, Math.min(10000, parseInt(document.getElementById('simCount').value) || 2000));
+
+    var months = horizonYears * 12;
+    var monthlyMean = assets.map(function (a) { return a.annualReturn / 12; });
+    var monthlyVol = assets.map(function (a) { return a.annualVol / Math.sqrt(12); });
+
+    var pathTotals = []; // [sim][month] total value
+    var finalNominal = [];
+    var finalReal = [];
+    var ruinCount = 0;
+
+    for (var s = 0; s < simCount; s++) {
+      var values = assets.map(function (a) { return a.amount; });
+      var ruined = false;
+      var path = new Float64Array(months + 1);
+      path[0] = totalInitial;
+
+      for (var m = 1; m <= months; m++) {
+        for (var i = 0; i < values.length; i++) {
+          var z = gaussianRandom();
+          var r = monthlyMean[i] + monthlyVol[i] * z;
+          values[i] = values[i] * (1 + r);
+        }
+
+        var yearIdx = Math.floor((m - 1) / 12);
+        var contribThisMonth = monthlyContribution * Math.pow(1 + contributionGrowth, yearIdx);
+        var inWithdrawPhase = (m / 12) > withdrawStartYear;
+
+        if (!inWithdrawPhase && contribThisMonth > 0) {
+          for (var i2 = 0; i2 < values.length; i2++) values[i2] += contribThisMonth * targetWeights[i2];
+        }
+
+        var total = values.reduce(function (s2, v) { return s2 + v; }, 0);
+
+        if (inWithdrawPhase && total > 0) {
+          var withdrawThisMonth;
+          if (withdrawModeVal === 'percent') {
+            withdrawThisMonth = total * (withdrawAmountInput / 100) / 12;
+          } else {
+            var yearsIntoWithdraw = (m / 12) - withdrawStartYear;
+            withdrawThisMonth = (withdrawAmountInput / 12) * Math.pow(1 + inflation, Math.max(0, yearsIntoWithdraw));
+          }
+          if (withdrawThisMonth > 0 && total > 0) {
+            var frac = Math.min(1, withdrawThisMonth / total);
+            for (var i3 = 0; i3 < values.length; i3++) values[i3] -= values[i3] * frac;
+          }
+        }
+
+        if (rebalance && m % 12 === 0) {
+          var newTotal = values.reduce(function (s3, v) { return s3 + v; }, 0);
+          if (newTotal > 0) {
+            for (var i4 = 0; i4 < values.length; i4++) values[i4] = newTotal * targetWeights[i4];
+          }
+        }
+
+        var finalTotal = values.reduce(function (s4, v) { return s4 + Math.max(0, v); }, 0);
+        if (finalTotal <= 0) {
+          finalTotal = 0;
+          ruined = true;
+          for (var i5 = 0; i5 < values.length; i5++) values[i5] = 0;
+        }
+        path[m] = finalTotal;
+      }
+
+      pathTotals.push(path);
+      var endNominal = path[months];
+      finalNominal.push(endNominal);
+      finalReal.push(endNominal / Math.pow(1 + inflation, horizonYears));
+      if (ruined) ruinCount++;
+    }
+
+    var monthlyPercentiles = { p10: [], p25: [], p50: [], p75: [], p90: [] };
+    var samplePoints = [];
+    var step = Math.max(1, Math.floor(months / 120));
+    for (var mo = 0; mo <= months; mo += step) samplePoints.push(mo);
+    if (samplePoints[samplePoints.length - 1] !== months) samplePoints.push(months);
+
+    samplePoints.forEach(function (mo) {
+      var col = pathTotals.map(function (p) { return p[mo]; }).sort(function (a, b) { return a - b; });
+      monthlyPercentiles.p10.push(percentile(col, 0.10));
+      monthlyPercentiles.p25.push(percentile(col, 0.25));
+      monthlyPercentiles.p50.push(percentile(col, 0.50));
+      monthlyPercentiles.p75.push(percentile(col, 0.75));
+      monthlyPercentiles.p90.push(percentile(col, 0.90));
+    });
+
+    var sortedFinalReal = finalReal.slice().sort(function (a, b) { return a - b; });
+    var medianReal = percentile(sortedFinalReal, 0.5);
+    var p10Real = percentile(sortedFinalReal, 0.10);
+    var p90Real = percentile(sortedFinalReal, 0.90);
+    var survivalRate = 1 - ruinCount / simCount;
+    var goalHitRate = goalAmount > 0 ? finalReal.filter(function (v) { return v >= goalAmount; }).length / simCount : null;
+
+    renderResults({
+      samplePoints: samplePoints,
+      percentiles: monthlyPercentiles,
+      horizonYears: horizonYears,
+      medianReal: medianReal,
+      p10Real: p10Real,
+      p90Real: p90Real,
+      survivalRate: survivalRate,
+      goalAmount: goalAmount,
+      goalHitRate: goalHitRate,
+      hasWithdraw: withdrawStartYear < horizonYears
+    });
+  }
+
+  function formatWon(v) {
+    if (Math.abs(v) >= 1e8) return (v / 1e8).toFixed(1) + '억';
+    if (Math.abs(v) >= 1e4) return (v / 1e4).toFixed(0) + '만';
+    return Math.round(v).toLocaleString();
+  }
+
+  function renderResults(r) {
+    document.getElementById('results').style.display = 'block';
+
+    var statGrid = document.getElementById('statGrid');
+    var cards = [
+      { label: '중앙값 최종 자산 (실질가치)', value: formatWon(r.medianReal) + '원', cls: '' },
+      { label: '10번째 백분위 (비관적)', value: formatWon(r.p10Real) + '원', cls: '' },
+      { label: '90번째 백분위 (낙관적)', value: formatWon(r.p90Real) + '원', cls: '' }
+    ];
+    if (r.hasWithdraw) {
+      cards.push({
+        label: '자산 미고갈 확률',
+        value: (r.survivalRate * 100).toFixed(1) + '%',
+        cls: r.survivalRate >= 0.85 ? 'ok' : 'warn'
+      });
+    }
+    if (r.goalHitRate !== null) {
+      cards.push({
+        label: '목표 금액 달성 확률',
+        value: (r.goalHitRate * 100).toFixed(1) + '%',
+        cls: r.goalHitRate >= 0.7 ? 'ok' : 'warn'
+      });
+    }
+    statGrid.innerHTML = cards.map(function (c) {
+      return '<div class="stat-card ' + c.cls + '"><div class="label">' + c.label + '</div><div class="value">' + c.value + '</div></div>';
+    }).join('');
+
+    drawChart(r);
+  }
+
+  function drawChart(r) {
+    var canvas = document.getElementById('chart');
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || 900;
+    var cssH = 340;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var padL = 70, padR = 20, padT = 16, padB = 34;
+    var plotW = cssW - padL - padR;
+    var plotH = cssH - padT - padB;
+
+    var allVals = [].concat(r.percentiles.p10, r.percentiles.p90);
+    var maxVal = Math.max.apply(null, allVals) * 1.05;
+    var minVal = 0;
+
+    function xAt(i) { return padL + (i / (r.samplePoints.length - 1)) * plotW; }
+    function yAt(v) { return padT + plotH - ((v - minVal) / (maxVal - minVal)) * plotH; }
+
+    ctx.strokeStyle = '#E2E8F0';
+    ctx.fillStyle = '#64748B';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.lineWidth = 1;
+    var gridLines = 5;
+    for (var g = 0; g <= gridLines; g++) {
+      var v = (maxVal / gridLines) * g;
+      var y = yAt(v);
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(cssW - padR, y); ctx.stroke();
+      ctx.fillText(formatWon(v), 4, y + 4);
+    }
+
+    var yearTicks = 6;
+    for (var t = 0; t <= yearTicks; t++) {
+      var yrFrac = t / yearTicks;
+      var idx = Math.round(yrFrac * (r.samplePoints.length - 1));
+      var x = xAt(idx);
+      var yr = Math.round((r.samplePoints[idx] / 12));
+      ctx.fillText(yr + '년', x - 10, cssH - 10);
+    }
+
+    function band(lo, hi, color) {
+      ctx.beginPath();
+      for (var i = 0; i < r.samplePoints.length; i++) ctx[i === 0 ? 'moveTo' : 'lineTo'](xAt(i), yAt(hi[i]));
+      for (var j = r.samplePoints.length - 1; j >= 0; j--) ctx.lineTo(xAt(j), yAt(lo[j]));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    band(r.percentiles.p10, r.percentiles.p90, 'rgba(147,197,253,0.45)');
+    band(r.percentiles.p25, r.percentiles.p75, 'rgba(59,130,246,0.5)');
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#1E40AF';
+    ctx.lineWidth = 2.2;
+    for (var k = 0; k < r.samplePoints.length; k++) {
+      var px = xAt(k), py = yAt(r.percentiles.p50[k]);
+      if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    if (r.goalAmount > 0 && r.goalAmount <= maxVal) {
+      ctx.beginPath();
+      ctx.strokeStyle = '#DC2626';
+      ctx.setLineDash([5, 4]);
+      var gy = yAt(r.goalAmount);
+      ctx.moveTo(padL, gy); ctx.lineTo(cssW - padR, gy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#DC2626';
+      ctx.fillText('목표 ' + formatWon(r.goalAmount) + '원', padL + 6, gy - 6);
+    }
+  }
+
+  var runBtn = document.getElementById('runBtn');
+  runBtn.addEventListener('click', function () {
+    runBtn.disabled = true;
+    runBtn.textContent = '계산 중...';
+    setTimeout(function () {
+      try {
+        runSimulation();
+      } finally {
+        runBtn.disabled = false;
+        runBtn.textContent = '시뮬레이션 실행';
+      }
+    }, 30);
+  });
+})();
+</script>
+
+</body>
+</html>
