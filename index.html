@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="kitty.png" type="image/png">
 <title>포트폴리오 몬테카를로 시뮬레이션</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
@@ -134,9 +135,40 @@
   .donut-legend-item .name { flex: 1; }
   .donut-legend-item .pct { font-weight: 600; font-variant-numeric: tabular-nums; }
   .alloc-empty { font-size: .82rem; color: var(--text-secondary); text-align: center; padding: 30px 10px; }
+  /* ---------- 상단바: 고정 + 뒤로가기 ---------- */
+  .jk-topbar { position: sticky; top: 0; z-index: 60;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 0; font-size: 13px; color: #94a3b8;
+    background: rgba(255,255,255,.93); backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--border); }
+  .jk-topbar .here { color: var(--text-primary); font-weight: 500; }
+  .jk-back { display: inline-flex; align-items: center; gap: 7px;
+    padding: 3px 11px 3px 7px; border-radius: 999px; border: 1px solid transparent;
+    color: #334155; text-decoration: none; font-weight: 500;
+    transition: background .18s ease, border-color .18s ease; }
+  .jk-back:hover { background: var(--bg-soft); border-color: #D8E4F6; color: #1d4ed8; }
+  .jk-arrow { font-size: 15px; line-height: 1; color: #8295ad;
+    transition: transform .18s ease, color .18s ease; }
+  .jk-back:hover .jk-arrow { transform: translateX(-3px); color: #1d4ed8; }
+  .jk-kitty { width: 24px; height: 24px; border-radius: 50%; display: block; flex: none;
+    background: #FFFFFF; border: 1px solid var(--border); padding: 1.5px; object-fit: contain; }
+  .site-footer { border-top: 1px solid var(--border); padding: 24px 0 40px;
+    font-size: .8rem; color: var(--text-secondary); display: flex;
+    justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .site-footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  @media (max-width: 680px) {
+    .jk-topbar { font-size: 11.5px; gap: 5px; }
+    .jk-kitty { width: 21px; height: 21px; }
+    .jk-back { padding: 3px 8px 3px 5px; gap: 5px; }
+  }
 </style>
 </head>
 <body>
+
+<div class="jk-topbar"><div class="container" style="display:flex;align-items:center;gap:8px">
+  <a class="jk-back" href="https://hmson0105.github.io/#projects" title="홈으로 돌아가기"><span class="jk-arrow" aria-hidden="true">&#8592;</span><img class="jk-kitty" src="kitty.png" alt="" aria-hidden="true" width="24" height="24"><span>손혜미 포트폴리오</span></a>
+  <span>/</span> <span class="here">포트폴리오 몬테카를로</span>
+</div></div>
 
 <header class="top">
   <div class="container">
@@ -275,6 +307,13 @@
   </section>
 
 </main>
+
+<div class="container">
+  <footer class="site-footer">
+    <span>&copy; 2026 손혜미 (Hyemi Son) · 브라우저 내에서만 계산됩니다</span>
+    <span>Icon by <a href="https://icons8.com" target="_blank" rel="noopener">Icons8</a></span>
+  </footer>
+</div>
 
 <script>
 (function () {
